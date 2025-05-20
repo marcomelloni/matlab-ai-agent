@@ -9,10 +9,7 @@
 A Python-based toolkit that leverages AI to **generate**, **validate**, and **execute** MATLAB simulations. Seamlessly bridge modern LLM-driven workflows (GPT-4) with traditional MATLAB scientific computing.
 
 <div align="center">
-   <video autoplay loop muted playsinline>
-      <source src="images/demo.mov" type="video/quicktime">
-      Your browser does not support the video tag.
-   </video>
+  <img src="images/demo.gif" alt="Demo of MATLAB AI Agent" />
 </div>
 
 ## ✨ Features
