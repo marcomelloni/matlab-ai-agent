@@ -12,6 +12,7 @@ from src.agent import MatlabAIAgent
 # Load environment variables (make sure OPENAI_API_KEY is set)
 load_dotenv()
 
+
 def main():
     """Run a simple example of the MATLAB AI Agent."""
     # Check for OpenAI API key
@@ -31,7 +32,7 @@ def main():
     - Damping coefficient (c) = 2 N⋅s/m
     - Initial displacement = 5 m
     - Initial velocity = 0 m/s
-    
+
     Simulate for 10 seconds and plot the position versus time.
     """
 
@@ -47,23 +48,23 @@ def main():
     if agent.matlab.is_available:
         print("\nValidating the generated code...")
         validation_results = agent.validate_with_mlint()
-        
+
         if validation_results:
             print("Validation issues found:")
             for result in validation_results:
                 print(f"  {result}")
-                
+
             print("\nAttempting to fix issues...")
             fixed_code = agent.fix_code_with_llm(validation_results)
             print("Code fixed!")
         else:
             print("✅ Validation passed: No issues found.")
-            
+
         # Execute the simulation
         print("\nExecuting the simulation...")
         result = agent.execute_simulation()
         print(result)
-        
+
         if agent.simulation_results.get("success"):
             print("✅ Simulation executed successfully!")
             if agent.simulation_results.get("figure"):
@@ -72,7 +73,7 @@ def main():
             print("❌ Simulation failed.")
     else:
         print("\nMATLAB Engine not available. Skipping validation and execution.")
-        
+
     # Save the code to a file
     output_file = "mass_spring_damper.m"
     with open(output_file, "w", encoding="utf-8") as f:

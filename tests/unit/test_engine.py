@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from src.engine import MatlabEngine
 
+
 class TestMatlabEngine(unittest.TestCase):
     def setUp(self):
         # patch matlab.engine module
@@ -31,7 +32,9 @@ class TestMatlabEngine(unittest.TestCase):
     def test_validate_code_no_engine(self):
         engine = MatlabEngine(startup=False)
         engine.is_available = False
-        self.assertEqual(engine.validate_code("code"), ["MATLAB Engine not available."])
+        self.assertEqual(
+            engine.validate_code("code"),
+            ["MATLAB Engine not available."])
 
     def test_validate_code_empty(self):
         engine = MatlabEngine(startup=False)
@@ -92,7 +95,8 @@ class TestMatlabEngine(unittest.TestCase):
         engine = MatlabEngine(startup=False)
         engine.is_available = True
         engine.eng = self.mock_eng
-        self.mock_eng.eval.side_effect = ["", ""]  # first eval runs script, second gets error_msg
+        # first eval runs script, second gets error_msg
+        self.mock_eng.eval.side_effect = ["", ""]
 
         with tempfile.TemporaryDirectory() as tmp:
             with patch('tempfile.gettempdir', return_value=tmp):
@@ -101,7 +105,6 @@ class TestMatlabEngine(unittest.TestCase):
                 self.assertIn('success', res)
                 self.assertIn('output', res)
                 self.assertIn('figure', res)
-
 
     def test_execute_code_exception(self):
         engine = MatlabEngine(startup=False)
@@ -119,6 +122,7 @@ class TestMatlabEngine(unittest.TestCase):
         engine.eng = self.mock_eng
         engine.shutdown()
         self.mock_eng.quit.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

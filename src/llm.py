@@ -65,7 +65,8 @@ class LLMInterface:
             messages.extend(conversation_history)
 
         # Add the current prompt
-        messages.append({"role": "user", "content": f"Generate MATLAB code for: {prompt}"})
+        messages.append(
+            {"role": "user", "content": f"Generate MATLAB code for: {prompt}"})
 
         try:
             response = self.client.chat.completions.create(

@@ -9,6 +9,7 @@ from click.testing import CliRunner
 # Assuming cli.py is in the same package as agent.py under src
 from src.cli import cli
 
+
 class TestCLI(unittest.TestCase):
     """Test suite for the CLI commands of MATLAB AI Agent."""
 
@@ -24,7 +25,8 @@ class TestCLI(unittest.TestCase):
         self.mock_agent.generate_matlab_code.return_value = "% Generated code"
         self.mock_agent.validate_with_mlint.return_value = []
         self.mock_agent.execute_simulation.return_value = "Execution result"
-        self.mock_agent.simulation_results = {"success": True, "figure": "/path/fig.png"}
+        self.mock_agent.simulation_results = {
+            "success": True, "figure": "/path/fig.png"}
         # Ensure new instance returns our mock
         self.mock_agent_class.return_value = self.mock_agent
 
@@ -38,7 +40,8 @@ class TestCLI(unittest.TestCase):
 
     def test_interactive_exit_immediately(self):
         inputs = "Prompt text\n5\n"
-        result = self.runner.invoke(cli, ['interactive', '--no-matlab'], input=inputs)
+        result = self.runner.invoke(
+            cli, ['interactive', '--no-matlab'], input=inputs)
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Describe the simulation ODE", result.output)
         self.assertIn("Thank you for using MATLAB AI Agent!", result.output)
@@ -70,14 +73,16 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Execution result", result.output)
 
     def test_interactive_execute_failure_no_fix(self):
-        self.mock_agent.simulation_results = {"success": False, "error": "Fail"}
+        self.mock_agent.simulation_results = {
+            "success": False, "error": "Fail"}
         inputs = "Prompt\n2\nn\n5\n"
         result = self.runner.invoke(cli, ['interactive'], input=inputs)
         self.assertIn("Attempt to fix execution issues?", result.output)
         self.mock_agent.fix_code_with_llm.assert_not_called()
 
     def test_interactive_execute_failure_and_fix(self):
-        self.mock_agent.simulation_results = {"success": False, "error": "Fail"}
+        self.mock_agent.simulation_results = {
+            "success": False, "error": "Fail"}
         inputs = "Prompt\n2\ny\n5\n"
         result = self.runner.invoke(cli, ['interactive'], input=inputs)
         self.assertIn("Fixing code", result.output)
@@ -120,6 +125,7 @@ class TestCLI(unittest.TestCase):
             result = self.runner.invoke(cli, ['execute', filepath])
             self.assertNotEqual(result.exit_code, 0)
             self.assertIn("❌ MATLAB Engine not available.", result.output)
+
 
 if __name__ == '__main__':
     unittest.main()

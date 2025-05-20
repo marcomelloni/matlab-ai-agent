@@ -43,7 +43,8 @@ class MatlabEngine:
             True if the engine started successfully, False otherwise.
         """
         try:
-            # Import here to avoid requiring matlab as a dependency for the package
+            # Import here to avoid requiring matlab as a dependency for the
+            # package
             import matlab.engine
 
             self.eng = matlab.engine.start_matlab()
@@ -76,7 +77,8 @@ class MatlabEngine:
             return ["No code to validate."]
 
         # Create a unique identifier for the script
-        unique_id = hashlib.md5((code + str(time.time())).encode()).hexdigest()[:8]
+        unique_id = hashlib.md5(
+            (code + str(time.time())).encode()).hexdigest()[:8]
         script_name = f"validate_script_{unique_id}"
         temp_dir = tempfile.gettempdir()
         script_path = os.path.join(temp_dir, f"{script_name}.m")
@@ -85,7 +87,9 @@ class MatlabEngine:
             with open(script_path, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            messages = self.eng.checkcode(script_path.replace(os.sep, '/'), nargout=1)
+            messages = self.eng.checkcode(
+                script_path.replace(
+                    os.sep, '/'), nargout=1)
 
             mlint_results = []
             for msg in messages:
@@ -103,8 +107,8 @@ class MatlabEngine:
                 except Exception:
                     pass
 
-
-    def execute_code(self, code: str) -> Tuple[str, Dict[str, Union[str, bool, None]]]:
+    def execute_code(
+            self, code: str) -> Tuple[str, Dict[str, Union[str, bool, None]]]:
         """
         Execute MATLAB code and capture the results.
 
@@ -132,7 +136,8 @@ class MatlabEngine:
         cleaned_code = self._clean_ascii(code)
 
         # Create a unique identifier for the script
-        unique_id = hashlib.md5((code + str(time.time())).encode()).hexdigest()[:8]
+        unique_id = hashlib.md5(
+            (code + str(time.time())).encode()).hexdigest()[:8]
         script_name = f"sim_script_{unique_id}"
         temp_dir = tempfile.gettempdir()
         script_path = os.path.join(temp_dir, f"{script_name}.m")
@@ -229,4 +234,5 @@ class MatlabEngine:
         Returns:
             ASCII-clean text.
         """
-        return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+        return unicodedata.normalize("NFKD", text).encode(
+            "ascii", "ignore").decode("ascii")

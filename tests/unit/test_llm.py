@@ -9,7 +9,10 @@ class TestLLMInterface(unittest.TestCase):
     def test_generate_code_success(self, mock_openai_class):
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="```matlab\nx = 1;\n```"))]
+        mock_response.choices = [
+            MagicMock(
+                message=MagicMock(
+                    content="```matlab\nx = 1;\n```"))]
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
@@ -22,7 +25,8 @@ class TestLLMInterface(unittest.TestCase):
     @patch("src.llm.OpenAI")
     def test_generate_code_failure(self, mock_openai_class):
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("API error")
+        mock_client.chat.completions.create.side_effect = Exception(
+            "API error")
         mock_openai_class.return_value = mock_client
 
         llm = LLMInterface(model="gpt-4o-mini")
@@ -35,7 +39,10 @@ class TestLLMInterface(unittest.TestCase):
     def test_fix_code_success(self, mock_openai_class):
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="```matlab\ny = 2;\n```"))]
+        mock_response.choices = [
+            MagicMock(
+                message=MagicMock(
+                    content="```matlab\ny = 2;\n```"))]
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
@@ -50,7 +57,8 @@ class TestLLMInterface(unittest.TestCase):
     @patch("src.llm.OpenAI")
     def test_fix_code_failure(self, mock_openai_class):
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("API error")
+        mock_client.chat.completions.create.side_effect = Exception(
+            "API error")
         mock_openai_class.return_value = mock_client
 
         llm = LLMInterface(model="gpt-4o-mini")

@@ -9,6 +9,7 @@ from typing import List
 from .engine import MatlabEngine
 from .llm import LLMInterface
 
+
 class MatlabAIAgent:
     """
     AI-powered agent for MATLAB code generation and execution.
@@ -102,13 +103,15 @@ class MatlabAIAgent:
         if self.verbose:
             print("Executing MATLAB simulation...")
 
-        result, self.simulation_results = self.matlab.execute_code(self.matlab_code)
+        result, self.simulation_results = self.matlab.execute_code(
+            self.matlab_code)
 
         if self.verbose:
             if self.simulation_results.get("success", False):
                 print("✅ Simulation executed successfully.")
                 if self.simulation_results.get("figure"):
-                    print(f"Figure saved to: {self.simulation_results['figure']}")
+                    print(
+                        f"Figure saved to: {self.simulation_results['figure']}")
             else:
                 print(f"❌ Simulation execution failed: {result}")
 
