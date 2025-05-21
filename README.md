@@ -39,7 +39,7 @@ poetry install
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
 # 4. Launch and start creating!
-poetry run matlab-ai-agent interactive
+poetry run matlab-ai-agent
 ```
 
 That's it! Start transforming your ideas into working MATLAB code instantly.
@@ -151,14 +151,51 @@ Create a `.env` file in the project root with your OpenAI API key:
 OPENAI_API_KEY=your_api_key_here
 ```
 
+#### 7. Advanced Setup (Optional) 🔧
+
+##### Define Custom Rules and Constraints for Simulations
+
+To enable advanced features of the MATLAB AI Agent, run:
+
+```bash
+poetry run matlab-ai-agent --generate-prompt
+```
+
+This command creates a `.matlab_ai_prompt` file inside the root directory.
+
+In this file, you can define custom rules and constraints that the agent will follow during code validation and execution.
+
+##### What you can specify in `.matlab_ai_prompt`:
+
+- Required parameters for simulations
+- MATLAB functions to avoid (e.g., for performance or security)
+- Numeric or logical constraints
+- Optimization goals
+- Required outputs (e.g., plots, logs, result files)
+- Code style or formatting rules
+- Any other execution guideline
+
+##### Example content:
+
+```
+- Maximum simulation time: 60 seconds
+- Avoid using "eval" and "assignin"
+- Save key results to "result.mat"
+- Save plots as "output.png" if generated
+- Prefer vectorized operations
+```
+
+> ℹ️ The `.matlab_ai_prompt` file is loaded automatically at runtime.
+> To update rules, simply edit the file—no need to rerun the command.
+
 ## 🖥️ Usage
 
-### Interactive Mode
+### Interactive Mode (Default)
 
 Launch an AI-guided interactive session for generating, validating, and executing MATLAB code:
 
 ```bash
-poetry run matlab-ai-agent interactive
+poetry run matlab-ai-agent
 ```
 
 Options:

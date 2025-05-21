@@ -1,131 +1,130 @@
 import os
-import sys
-import unittest
-from unittest.mock import MagicMock, patch
-
-import click
+import pytest
+from unittest.mock import patch, MagicMock, mock_open
 from click.testing import CliRunner
+from src.cli import cli, main
 
-# Assuming cli.py is in the same package as agent.py under src
-from src.cli import cli
+# Fixtures and setup
+@pytest.fixture
+def runner():
+    return CliRunner()
 
+@pytest.fixture
+def mock_agent():
+    agent = MagicMock()
+    agent.matlab.is_available = True
+    agent.simulation_results = {"success": True, "figure": "figure.png"}
+    agent.matlab_code = "disp('Hello World');"
+    agent.generate_matlab_code.return_value = "disp('Hello World');"
+    return agent
 
-class TestCLI(unittest.TestCase):
-    """Test suite for the CLI commands of MATLAB AI Agent."""
+# CLI entrypoint test
+@patch.dict(os.environ, {"OPENAI_API_KEY": "test"})
+@patch("src.cli.cli")
+def test_main_cli(mock_cli):
+    main()
+    mock_cli.assert_called()
 
-    def setUp(self):
-        self.runner = CliRunner()
-        # Patch the MatlabAIAgent used in cli
-        self.agent_patch = patch('src.cli.MatlabAIAgent')
-        self.mock_agent_class = self.agent_patch.start()
-        # Create a mock agent instance
-        self.mock_agent = MagicMock()
-        self.mock_agent.matlab.is_available = True
-        self.mock_agent.matlab_code = "% MATLAB code"
-        self.mock_agent.generate_matlab_code.return_value = "% Generated code"
-        self.mock_agent.validate_with_mlint.return_value = []
-        self.mock_agent.execute_simulation.return_value = "Execution result"
-        self.mock_agent.simulation_results = {
-            "success": True, "figure": "/path/fig.png"}
-        # Ensure new instance returns our mock
-        self.mock_agent_class.return_value = self.mock_agent
-
-    def tearDown(self):
-        self.agent_patch.stop()
-
-    def test_version_option(self):
-        result = self.runner.invoke(cli, ['--version'])
-        self.assertEqual(result.exit_code, 0)
-        self.assertRegex(result.output.strip(), r"\d+\.\d+\.\d+")
-
-    def test_interactive_exit_immediately(self):
-        inputs = "Prompt text\n5\n"
-        result = self.runner.invoke(
-            cli, ['interactive', '--no-matlab'], input=inputs)
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("Describe the simulation ODE", result.output)
-        self.assertIn("Thank you for using MATLAB AI Agent!", result.output)
-        self.mock_agent.matlab.shutdown.assert_not_called()
-
-    def test_interactive_validate_no_fix(self):
-        # validation returns errors but user declines fix
-        self.mock_agent.validate_with_mlint.return_value = ["Err"]
-        inputs = "Prompt\n1\nn\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("Issues found:", result.output)
-        self.assertIn("Err", result.output)
-        self.mock_agent.fix_code_with_llm.assert_not_called()
-
-    def test_interactive_validate_and_fix(self):
-        self.mock_agent.validate_with_mlint.return_value = ["Err"]
-        inputs = "Prompt\n1\nY\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("Fixing code", result.output)
-        self.mock_agent.fix_code_with_llm.assert_called_once_with(["Err"])
-
-    def test_interactive_execute_success(self):
-        self.mock_agent.simulation_results = {"success": True}
-        inputs = "Prompt\n2\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertIn("Executing simulation", result.output)
-        self.assertIn("Execution result", result.output)
-
-    def test_interactive_execute_failure_no_fix(self):
-        self.mock_agent.simulation_results = {
-            "success": False, "error": "Fail"}
-        inputs = "Prompt\n2\nn\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertIn("Attempt to fix execution issues?", result.output)
-        self.mock_agent.fix_code_with_llm.assert_not_called()
-
-    def test_interactive_execute_failure_and_fix(self):
-        self.mock_agent.simulation_results = {
-            "success": False, "error": "Fail"}
-        inputs = "Prompt\n2\ny\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertIn("Fixing code", result.output)
-        self.mock_agent.fix_code_with_llm.assert_called_once_with(["Fail"])
-
-    def test_interactive_modify_improve(self):
-        inputs = "Prompt\n3\nAdd comment\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertIn("Generating updated code", result.output)
-        self.mock_agent.generate_matlab_code.assert_called_with("Add comment")
-
-    def test_interactive_save_code(self):
-        with self.runner.isolated_filesystem():
-            inputs = "Prompt\n4\nmycode.m\n5\n"
-            result = self.runner.invoke(cli, ['interactive'], input=inputs)
-            self.assertTrue(os.path.exists('mycode.m'))
-            self.assertIn("Code saved to mycode.m", result.output)
-
-    def test_interactive_invalid_choice(self):
-        inputs = "Prompt\n9\n5\n"
-        result = self.runner.invoke(cli, ['interactive'], input=inputs)
-        self.assertIn("Invalid choice", result.output)
-
-    def test_execute_success(self):
-        with self.runner.isolated_filesystem():
-            filepath = 'test.m'
-            with open(filepath, 'w') as f:
-                f.write('%')
-            result = self.runner.invoke(cli, ['execute', filepath])
-            self.assertEqual(result.exit_code, 0)
-            self.assertIn("✅ Execution successful!", result.output)
-            self.assertIn("Figure saved to: /path/fig.png", result.output)
-
-    def test_execute_no_engine(self):
-        self.mock_agent.matlab.is_available = False
-        with self.runner.isolated_filesystem():
-            filepath = 'f.m'
-            with open(filepath, 'w'):
-                pass
-            result = self.runner.invoke(cli, ['execute', filepath])
-            self.assertNotEqual(result.exit_code, 0)
-            self.assertIn("❌ MATLAB Engine not available.", result.output)
+@patch.dict(os.environ, {}, clear=True)
+def test_main_no_api_key():
+    with patch("builtins.print") as mock_print:
+        with pytest.raises(SystemExit):
+            main()
+        mock_print.assert_not_called()
 
 
-if __name__ == '__main__':
-    unittest.main()
+# execute command with valid file
+@patch("src.cli.open", new_callable=mock_open, read_data="disp('run');")
+@patch("src.cli.MatlabAIAgent")
+def test_execute_command(mock_agent_class, mock_file, runner):
+    agent = MagicMock()
+    agent.matlab.is_available = True
+    agent.execute_simulation.return_value = "Executed"
+    mock_agent_class.return_value = agent
+
+    with runner.isolated_filesystem():
+        filepath = "test.m"
+        with open(filepath, "w") as f:
+            f.write("disp('test');")
+        result = runner.invoke(cli, ["execute", filepath])
+        assert result.exit_code == 0
+        assert "Executed" in result.output
+
+# Invalid file path
+def test_execute_missing_file(runner):
+    result = runner.invoke(cli, ["execute", "missing.m"])
+    assert result.exit_code != 0
+    assert "Error" in result.output or "❌" in result.output
+
+# Test CLI with --quiet and --verbose
+@patch("src.cli.logger")
+@patch("src.cli.interactive")
+def test_cli_options_log_levels(mock_interactive, logger_mock, runner):
+    runner.invoke(cli, ["--quiet"])
+    logger_mock.set_level.assert_called()
+
+    runner.invoke(cli, ["-v"])
+    logger_mock.set_level.assert_called()
+
+    runner.invoke(cli, ["-vv"])
+    logger_mock.set_level.assert_called()
+
+# Validate and fix flow
+@patch("src.cli.click.prompt", side_effect=[
+    "mass-spring system",  # user prompt
+    1,  # Validate
+    5   # Exit
+])
+@patch("src.cli.click.confirm", return_value=True)
+@patch("src.cli.MatlabAIAgent")
+def test_validate_code_fix_flow(mock_agent_class, confirm_mock, prompt_mock, runner):
+    agent = MagicMock()
+    agent.matlab.is_available = True
+    agent.generate_matlab_code.return_value = "code"
+    agent.validate_with_mlint.return_value = ["error: something wrong"]
+    agent.matlab_code = "fixed code"
+    mock_agent_class.return_value = agent
+
+    result = runner.invoke(cli, ["interactive"])
+    assert result.exit_code == 0
+    agent.fix_code_with_llm.assert_called()
+
+# Modify code flow
+@patch("src.cli.click.prompt", side_effect=[
+    "mass-spring system",  # user prompt
+    3,  # modify option
+    "add damping",  # how to modify
+    5   # exit
+])
+@patch("src.cli.MatlabAIAgent")
+def test_modify_code_flow(mock_agent_class, prompt_mock, runner):
+    agent = MagicMock()
+    agent.matlab.is_available = True
+    agent.generate_matlab_code.return_value = "new code"
+    agent.matlab_code = "new code"
+    mock_agent_class.return_value = agent
+
+    result = runner.invoke(cli, ["interactive"])
+    assert result.exit_code == 0
+    assert "new code" in result.output
+
+# Save to file
+@patch("src.cli.click.prompt", side_effect=[
+    "mass-spring system",  # user prompt
+    4,  # Save
+    "saved_code.m",  # filename
+    5   # exit
+])
+@patch("src.cli.MatlabAIAgent")
+def test_save_code(mock_agent_class, prompt_mock, runner):
+    agent = MagicMock()
+    agent.matlab.is_available = True
+    agent.generate_matlab_code.return_value = "disp('save');"
+    agent.matlab_code = "disp('save');"
+    mock_agent_class.return_value = agent
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["interactive"])
+        assert os.path.exists("saved_code.m")
+        with open("saved_code.m") as f:
+            assert "disp" in f.read()

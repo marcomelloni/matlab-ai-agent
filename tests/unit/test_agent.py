@@ -1,7 +1,3 @@
-"""
-Tests for the MatlabAIAgent class.
-"""
-
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -17,7 +13,7 @@ class TestMatlabAIAgent(unittest.TestCase):
         self.mock_llm = MagicMock()
         self.mock_matlab = MagicMock()
 
-        # Create patches
+        # Patch LLMInterface and MatlabEngine to use mocks
         self.llm_patch = patch(
             'src.agent.LLMInterface',
             return_value=self.mock_llm)
@@ -25,14 +21,13 @@ class TestMatlabAIAgent(unittest.TestCase):
             'src.agent.MatlabEngine',
             return_value=self.mock_matlab)
 
-        # Start patches
         self.llm_patch.start()
         self.matlab_patch.start()
 
-        # Set up the agent with mocked dependencies
+        # Initialize the agent, which will use the patched mocks
         self.agent = MatlabAIAgent(verbose=False)
 
-        # Configure mocks
+        # Configure mock return values
         self.mock_llm.generate_code.return_value = "% Test MATLAB code"
         self.mock_llm.fix_code.return_value = "% Fixed MATLAB code"
         self.mock_matlab.is_available = True
@@ -42,7 +37,6 @@ class TestMatlabAIAgent(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after each test."""
-        # Stop patches
         self.llm_patch.stop()
         self.matlab_patch.stop()
 
@@ -57,13 +51,19 @@ class TestMatlabAIAgent(unittest.TestCase):
 
     def test_generate_matlab_code(self):
         """Test generating MATLAB code."""
-        code = self.agent.generate_matlab_code("Test prompt")
+        prompt = "Test prompt"
+        code = self.agent.generate_matlab_code(prompt)
         self.assertEqual(code, "% Test MATLAB code")
-        self.mock_llm.generate_code.assert_called_once()
+        self.mock_llm.generate_code.assert_called_once_with(
+            prompt,
+            conversation_history=self.agent.conversation_history,
+            progress_callback=None
+        )
 
     def test_validate_with_mlint_no_errors(self):
         """Test validating MATLAB code with no errors."""
         self.agent.matlab_code = "% Test code"
+        self.mock_matlab.validate_code.return_value = []
         results = self.agent.validate_with_mlint()
         self.assertEqual(results, [])
         self.mock_matlab.validate_code.assert_called_once_with("% Test code")
@@ -75,24 +75,51 @@ class TestMatlabAIAgent(unittest.TestCase):
         results = self.agent.validate_with_mlint()
         self.assertEqual(results, ["Error 1", "Error 2"])
         self.assertEqual(self.agent.mlint_results, ["Error 1", "Error 2"])
+        self.mock_matlab.validate_code.assert_called_with(
+            "% Test code with errors")
 
     def test_execute_simulation_success(self):
         """Test executing a simulation successfully."""
         self.agent.matlab_code = "% Test simulation"
+        self.mock_matlab.execute_code.return_value = (
+            "Success", {"success": True})
         result = self.agent.execute_simulation()
         self.assertEqual(result, "Success")
         self.assertEqual(self.agent.simulation_results, {"success": True})
         self.mock_matlab.execute_code.assert_called_once_with(
-            "% Test simulation")
+            self.agent.matlab_code, progress_callback=None
+        )
 
-    def test_fix_code_with_llm(self):
-        """Test fixing code with LLM."""
+    def test_execute_simulation_failure(self):
+        """Test executing a simulation with failure."""
+        self.agent.matlab_code = "% Test simulation"
+        self.mock_matlab.execute_code.return_value = (
+            "Failure", {"success": False, "error": "Runtime error"})
+        result = self.agent.execute_simulation()
+        self.assertEqual(result, "Failure")
+        self.assertEqual(self.agent.simulation_results["success"], False)
+        self.assertIn("error", self.agent.simulation_results)
+        self.mock_matlab.execute_code.assert_called_once_with(
+            self.agent.matlab_code, progress_callback=None
+        )
+
+    def test_fix_code_with_llm_with_errors(self):
+        """Test fixing code with LLM when errors exist."""
         self.agent.matlab_code = "% Code with errors"
-        fixed_code = self.agent.fix_code_with_llm(["Error 1", "Error 2"])
+        errors = ["Error 1", "Error 2"]
+        fixed_code = self.agent.fix_code_with_llm(errors)
         self.assertEqual(fixed_code, "% Fixed MATLAB code")
         self.mock_llm.fix_code.assert_called_once_with(
-            "% Code with errors", ["Error 1", "Error 2"])
+            "% Code with errors", errors, progress_callback=None
+        )
         self.assertEqual(self.agent.matlab_code, "% Fixed MATLAB code")
+
+    def test_fix_code_with_llm_no_errors(self):
+        """Test fixing code with LLM when no errors exist."""
+        self.agent.matlab_code = "% Code without errors"
+        fixed_code = self.agent.fix_code_with_llm([])
+        self.assertEqual(fixed_code, "% Code without errors")
+        self.mock_llm.fix_code.assert_not_called()
 
 
 if __name__ == "__main__":

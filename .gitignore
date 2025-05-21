@@ -179,3 +179,8 @@ cython_debug/
 
 # MATLAB
 *.m
+*.matlab_ai_prompt
+*.txt
+simulations/
+matlab_results_*/
+logs/

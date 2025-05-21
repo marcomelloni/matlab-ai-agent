@@ -110,11 +110,10 @@ class TestMatlabEngine(unittest.TestCase):
         engine = MatlabEngine(startup=False)
         engine.is_available = True
         engine.eng = self.mock_eng
-        # force exception in makedirs
         with patch('os.makedirs', side_effect=Exception('faildir')):
-            msg, res = engine.execute_code("disp('hi')")
-            self.assertFalse(res['success'])
-            self.assertIn('Error:', msg)
+            with self.assertRaises(Exception) as context:
+                engine.execute_code("disp('hi')")
+            self.assertIn('faildir', str(context.exception))
 
     def test_shutdown(self):
         engine = MatlabEngine(startup=False)

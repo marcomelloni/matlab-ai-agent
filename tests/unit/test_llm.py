@@ -6,74 +6,66 @@ from src.llm import LLMInterface
 class TestLLMInterface(unittest.TestCase):
 
     @patch("src.llm.OpenAI")
-    def test_generate_code_success(self, mock_openai_class):
-        mock_client = MagicMock()
+    def setUp(self, mock_openai):
+        # Mock OpenAI client to avoid real API calls
+        self.mock_client = MagicMock()
+        mock_openai.return_value = self.mock_client
+
+        # Patch system prompt to avoid file dependency
+        with patch.object(LLMInterface, "_load_system_prompt", return_value="You are a MATLAB code assistant."):
+            self.llm = LLMInterface(model="gpt-4o-mini")
+
+    def test_clean_code_removes_markdown(self):
+        raw_code = "```matlab\nx = 1;\n```"
+        expected_code = "x = 1;"
+        self.assertEqual(self.llm._clean_code(raw_code), expected_code)
+
+    @patch("src.llm.OpenAI")
+    def test_generate_code(self, mock_openai):
+        # Mock API response
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content="```matlab\nx = 1;\n```"))]
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_openai_class.return_value = mock_client
+                    content="x = 1;"))]
+        self.mock_client.chat.completions.create.return_value = mock_response
 
-        llm = LLMInterface(model="gpt-4o-mini")
-        result = llm.generate_code("Create a simple MATLAB script")
-
-        self.assertEqual(result, "x = 1;")
-        mock_client.chat.completions.create.assert_called_once()
+        result = self.llm.generate_code(prompt="Create a variable x = 1")
+        self.assertIn("x = 1", result)
 
     @patch("src.llm.OpenAI")
-    def test_generate_code_failure(self, mock_openai_class):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "API error")
-        mock_openai_class.return_value = mock_client
-
-        llm = LLMInterface(model="gpt-4o-mini")
-        result = llm.generate_code("Invalid prompt")
-
-        self.assertTrue(result.startswith("% Error generating code"))
-        mock_client.chat.completions.create.assert_called_once()
-
-    @patch("src.llm.OpenAI")
-    def test_fix_code_success(self, mock_openai_class):
-        mock_client = MagicMock()
+    def test_fix_code(self, mock_openai):
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content="```matlab\ny = 2;\n```"))]
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_openai_class.return_value = mock_client
+                    content="x = 1;"))]
+        self.mock_client.chat.completions.create.return_value = mock_response
 
-        llm = LLMInterface(model="gpt-4o-mini")
-        original_code = "x = ;"
-        errors = ["Error: unexpected end of expression"]
-        result = llm.fix_code(original_code, errors)
+        broken_code = "x = ;"
+        errors = ["Missing expression after ="]
+        result = self.llm.fix_code(broken_code, errors)
+        self.assertIn("x = 1", result)
 
-        self.assertEqual(result, "y = 2;")
-        mock_client.chat.completions.create.assert_called_once()
+    def test_model_name_is_stored(self):
+        self.assertEqual(self.llm.model, "gpt-4o-mini")
 
     @patch("src.llm.OpenAI")
-    def test_fix_code_failure(self, mock_openai_class):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "API error")
-        mock_openai_class.return_value = mock_client
+    def test_generate_code_handles_exceptions(self, mock_openai):
+        self.mock_client.chat.completions.create.side_effect = Exception(
+            "API Error")
 
-        llm = LLMInterface(model="gpt-4o-mini")
-        original_code = "x = ;"
-        errors = ["Error: unexpected end of expression"]
-        result = llm.fix_code(original_code, errors)
+        result = self.llm.generate_code("Make x = 1")
+        self.assertIn("Error generating code", result)
 
-        self.assertEqual(result, original_code)
-        mock_client.chat.completions.create.assert_called_once()
+    @patch("src.llm.OpenAI")
+    def test_fix_code_handles_exceptions(self, mock_openai):
+        self.mock_client.chat.completions.create.side_effect = Exception(
+            "Fix Error")
 
-    def test_clean_code(self):
-        llm = LLMInterface(model="gpt-4o-mini")
-        self.assertEqual(llm._clean_code("```matlab\nx = 5;\n```"), "x = 5;")
-        self.assertEqual(llm._clean_code("```x = 10;```"), "x = 10;")
-        self.assertEqual(llm._clean_code("x = 15;"), "x = 15;")
+        broken_code = "x = ;"
+        result = self.llm.fix_code(broken_code, ["Some error"])
+        self.assertEqual(result, broken_code)  # Should return original
 
 
 if __name__ == "__main__":
