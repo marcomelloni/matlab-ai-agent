@@ -5,9 +5,12 @@ from click.testing import CliRunner
 from src.cli import cli, main
 
 # Fixtures and setup
+
+
 @pytest.fixture
 def runner():
     return CliRunner()
+
 
 @pytest.fixture
 def mock_agent():
@@ -19,11 +22,14 @@ def mock_agent():
     return agent
 
 # CLI entrypoint test
+
+
 @patch.dict(os.environ, {"OPENAI_API_KEY": "test"})
 @patch("src.cli.cli")
 def test_main_cli(mock_cli):
     main()
     mock_cli.assert_called()
+
 
 @patch.dict(os.environ, {}, clear=True)
 def test_main_no_api_key():
@@ -51,12 +57,16 @@ def test_execute_command(mock_agent_class, mock_file, runner):
         assert "Executed" in result.output
 
 # Invalid file path
+
+
 def test_execute_missing_file(runner):
     result = runner.invoke(cli, ["execute", "missing.m"])
     assert result.exit_code != 0
     assert "Error" in result.output or "❌" in result.output
 
 # Test CLI with --quiet and --verbose
+
+
 @patch("src.cli.logger")
 @patch("src.cli.interactive")
 def test_cli_options_log_levels(mock_interactive, logger_mock, runner):
@@ -70,6 +80,8 @@ def test_cli_options_log_levels(mock_interactive, logger_mock, runner):
     logger_mock.set_level.assert_called()
 
 # Validate and fix flow
+
+
 @patch("src.cli.click.prompt", side_effect=[
     "mass-spring system",  # user prompt
     1,  # Validate
@@ -77,7 +89,8 @@ def test_cli_options_log_levels(mock_interactive, logger_mock, runner):
 ])
 @patch("src.cli.click.confirm", return_value=True)
 @patch("src.cli.MatlabAIAgent")
-def test_validate_code_fix_flow(mock_agent_class, confirm_mock, prompt_mock, runner):
+def test_validate_code_fix_flow(
+        mock_agent_class, confirm_mock, prompt_mock, runner):
     agent = MagicMock()
     agent.matlab.is_available = True
     agent.generate_matlab_code.return_value = "code"
@@ -90,6 +103,8 @@ def test_validate_code_fix_flow(mock_agent_class, confirm_mock, prompt_mock, run
     agent.fix_code_with_llm.assert_called()
 
 # Modify code flow
+
+
 @patch("src.cli.click.prompt", side_effect=[
     "mass-spring system",  # user prompt
     3,  # modify option
@@ -109,6 +124,8 @@ def test_modify_code_flow(mock_agent_class, prompt_mock, runner):
     assert "new code" in result.output
 
 # Save to file
+
+
 @patch("src.cli.click.prompt", side_effect=[
     "mass-spring system",  # user prompt
     4,  # Save

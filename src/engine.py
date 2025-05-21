@@ -47,7 +47,8 @@ class MatlabEngine:
         """
         logger.info("Starting MATLAB Engine")
         try:
-            # Import here to avoid requiring matlab as a dependency for the package
+            # Import here to avoid requiring matlab as a dependency for the
+            # package
             import matlab.engine  # pylint: disable=import-outside-toplevel
 
             self.eng = matlab.engine.start_matlab()
@@ -86,23 +87,30 @@ class MatlabEngine:
             return ["No code to validate."]
 
         # Create a unique identifier for the script
-        unique_id = hashlib.md5((code + str(time.time())).encode()).hexdigest()[:8]
+        unique_id = hashlib.md5(
+            (code + str(time.time())).encode()).hexdigest()[:8]
         script_name = f"validate_script_{unique_id}"
         temp_dir = tempfile.gettempdir()
         script_path = os.path.join(temp_dir, f"{script_name}.m")
 
-        logger.debug(f"Creating temporary script for validation: {script_path}")
+        logger.debug(
+            f"Creating temporary script for validation: {script_path}")
         try:
             with open(script_path, 'w', encoding='utf-8') as f:
                 f.write(code)
 
             logger.debug("Running MATLAB checkcode")
-            messages = self.eng.checkcode(script_path.replace(os.sep, '/'), nargout=1)
+            messages = self.eng.checkcode(
+                script_path.replace(
+                    os.sep, '/'), nargout=1)
 
             mlint_results = []
             for msg in messages:
                 mlint_results.append(f"[Line {msg.line}] {msg.message}")
-                logger.debug(f"Validation issue: [Line {msg.line}] {msg.message}")
+                logger.debug(
+                    f"Validation issue: [Line {
+                        msg.line}] {
+                        msg.message}")
 
             if not mlint_results:
                 logger.success("No validation issues found")
@@ -166,7 +174,8 @@ class MatlabEngine:
             progress_callback(10)  # Code cleaned
 
         # Create a unique identifier for the script
-        unique_id = hashlib.md5((code + str(time.time())).encode()).hexdigest()[:8]
+        unique_id = hashlib.md5(
+            (code + str(time.time())).encode()).hexdigest()[:8]
         script_name = f"sim_script_{unique_id}"
         current_dir = os.getcwd()
         results_dir_name = f"matlab_results_{unique_id}"
@@ -185,8 +194,12 @@ class MatlabEngine:
                 script_file.write(cleaned_code)
 
             logger.debug("Preparing MATLAB execution commands")
-            output_path = os.path.join(results_dir, 'output.txt').replace(os.sep, '/')
-            figure_path = os.path.join(results_dir, 'figure.png').replace(os.sep, '/')
+            output_path = os.path.join(
+                results_dir, 'output.txt').replace(
+                os.sep, '/')
+            figure_path = os.path.join(
+                results_dir, 'figure.png').replace(
+                os.sep, '/')
             results_dir_matlab = results_dir.replace(os.sep, '/')
 
             matlab_commands = [

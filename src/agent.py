@@ -125,7 +125,8 @@ class MatlabAIAgent:
 
         self.mlint_results = self.matlab.validate_code(self.matlab_code)
 
-        if not self.mlint_results or self.mlint_results == ["No issues found."]:
+        if not self.mlint_results or self.mlint_results == [
+                "No issues found."]:
             logger.success("Validation successful: No errors or warnings")
             if self.verbose:
                 print("✅ Validation successful: No errors or warnings.")
