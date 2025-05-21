@@ -181,6 +181,6 @@ cython_debug/
 *.m
 *.matlab_ai_prompt
 *.txt
-simulations/
 matlab_results_*/
 logs/
+error_history.json

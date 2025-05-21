@@ -10,6 +10,7 @@ from typing import List, Optional, Callable, Dict
 from .engine import MatlabEngine
 from .llm import LLMInterface
 from .utils.logger import logger, LogLevel
+from .utils.error_learner import ErrorLearner
 
 
 class MatlabAIAgent:
@@ -66,6 +67,15 @@ class MatlabAIAgent:
             logger.error(f"Failed to initialize MATLAB engine: {e}")
             if self.verbose:
                 print(f"Failed to initialize MATLAB engine: {e}")
+
+        # Initialize error learner
+        try:
+            logger.debug("Initializing error learning system")
+            self.error_learner = ErrorLearner()
+            logger.success("Error learning system initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize error learning system: {e}")
+            self.error_learner = None
 
     def add_message(self, role: str, content: str) -> None:
         """
@@ -193,17 +203,25 @@ class MatlabAIAgent:
         if self.verbose:
             print("Attempting to fix code with LLM...")
 
-        original_code_length = len(self.matlab_code)
+        original_code = self.matlab_code
         self.matlab_code = self.llm.fix_code(
             self.matlab_code,
             error_messages,
             progress_callback=progress_callback
         )
 
-        if len(self.matlab_code) != original_code_length:
+        # Learn from the error if the code was fixed
+        if self.error_learner and len(self.matlab_code) != len(original_code):
+            for error in error_messages:
+                if self.error_learner.learn_from_error(error, self.matlab_code, original_code):
+                    logger.info("Learned from error and updated prompt")
+                    if self.verbose:
+                        print("✅ Learned from error and updated prompt")
+
+        if len(self.matlab_code) != len(original_code):
             logger.success("Code fixing complete with changes")
             logger.debug(
-                f"Code length changed from {original_code_length} to {len(self.matlab_code)}")
+                f"Code length changed from {len(original_code)} to {len(self.matlab_code)}")
         else:
             logger.info("Code fixing complete (no changes detected)")
 
