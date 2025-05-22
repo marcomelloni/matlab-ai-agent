@@ -107,10 +107,7 @@ class MatlabEngine:
             mlint_results = []
             for msg in messages:
                 mlint_results.append(f"[Line {msg.line}] {msg.message}")
-                logger.debug(
-                    f"Validation issue: [Line {
-                        msg.line}] {
-                        msg.message}")
+                logger.debug(f"Validation issue: [Line {msg.line}] {msg.message}")
 
             if not mlint_results:
                 logger.success("No validation issues found")
