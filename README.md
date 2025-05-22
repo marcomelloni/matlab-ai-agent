@@ -3,6 +3,7 @@
 [![License: MIT NC](https://img.shields.io/badge/license-MIT--NC-blue.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![Poetry](https://img.shields.io/badge/poetry-%5E1.5.0-blue)](https://python-poetry.org/)
+[![codecov](https://codecov.io/gh/marcomelloni/matlab-ai-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/marcomelloni/matlab-ai-agent)
 
 > Transform your MATLAB workflow with AI-powered automation
 
